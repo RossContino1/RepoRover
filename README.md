@@ -33,6 +33,12 @@ SysUpdate is distributed as a **portable AppImage**, allowing it to run on most 
 
 ---
 
+## Video Demo
+
+A short demonstration of SysUpdate is available on YouTube.
+
+https://youtu.be/w91HEJTV8BA
+
 ## Homepage
 
 https://bytesbreadbbq.com/sysupdate/
