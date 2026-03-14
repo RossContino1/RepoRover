@@ -140,6 +140,16 @@ When an operation requires administrator privileges, the system will prompt for 
 
 ---
 
+## First Run Behavior
+
+When SysUpdate is run on a system that has not been updated recently, the update process may take longer than usual.
+
+During this time, the application may appear to pause or remain on the update screen. This is normal while the system gathers package information and checks for available updates.
+
+Please allow the process to complete. Large update operations may take several minutes depending on the system and internet connection.
+
+---
+
 ## Uninstall
 
 To remove SysUpdate:
