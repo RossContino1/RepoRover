@@ -1,0 +1,23 @@
+# binaries
+SysUpdate
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# build output
+dist/
+build/
+release/
+
+# temp files
+*.log
+*.tmp
+
+# editor
+.vscode/
+.idea/
+
+# AppImage build output
+*.AppImage
