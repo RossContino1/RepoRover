@@ -20,6 +20,18 @@ The program uses native package managers and requests administrator privileges s
 SysUpdate is distributed as a **portable AppImage**, allowing it to run on most Linux systems without requiring a traditional installation.
 
 ---
+## Screenshots
+
+### OS Detection
+![OS Detection](docs/1.png)
+
+### Administrator Prompt
+![Sudo Prompt](docs/2.png)
+
+### Completed Update
+![Completed Update](docs/3.png)
+
+---
 
 ## Homepage
 
