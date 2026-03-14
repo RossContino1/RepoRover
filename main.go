@@ -531,9 +531,13 @@ Testing Tips
 		),
 	)
 
+	firstRunNote := widget.NewLabel("Note: First run may take several minutes while SysUpdate gathers updates.")
+	firstRunNote.Wrapping = fyne.TextWrapWord
+
 	bottomPanel := container.NewVBox(
 		statusLabel,
 		progressBar,
+		firstRunNote,
 	)
 
 	content := container.NewBorder(
