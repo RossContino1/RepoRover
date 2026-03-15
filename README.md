@@ -35,9 +35,13 @@ SysUpdate is distributed as a **portable AppImage**, allowing it to run on most 
 
 ## Video Demo
 
-A short demonstration of SysUpdate is available on YouTube.
+A short demonstrations of SysUpdate is available on YouTube.
 
+2 minute tour
 https://youtu.be/w91HEJTV8BA
+
+30 second demo
+https://youtube.com/shorts/hKUy_gGfs1c?feature=share
 
 ---
 
