@@ -1,0 +1,31 @@
+# binaries
+SysUpdate
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# build output
+dist/
+build/
+release/
+
+# temp files
+*.log
+*.tmp
+
+# editor
+.vscode/
+.idea/
+
+# AppImage build output
+*.AppImage
+build/
+dist/
+distribution/
+RepoRover.AppDir/
+squashfs-root/
+RepoRover-1.0.0/
+*.AppImage
+*.zip
