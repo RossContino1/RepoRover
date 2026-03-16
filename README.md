@@ -119,6 +119,34 @@ sudo apt install fuse
 
 
 ---
+Security & Transparency
+
+RepoRover does not download or install software itself.
+
+It simply detects your Linux distribution and runs the standard package manager update command already used by your system.
+
+Examples:
+
+Distribution	Command RepoRover Runs
+Ubuntu / Debian / Mint	apt update && apt upgrade
+Fedora	dnf upgrade --refresh
+Arch	pacman -Syu
+openSUSE	zypper update
+
+RepoRover is:
+
+open source
+
+written in Go
+
+built with Fyne
+
+distributed as an AppImage
+
+You can inspect the source code here:
+
+https://github.com/RossContino1/RepoRover
+---
 
 ## Installation
 
