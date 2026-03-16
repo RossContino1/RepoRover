@@ -1,23 +1,23 @@
-# SysUpdate – Linux System Update Utility
+# RepoRover – Linux System Update Utility
 
 ![Platform](https://img.shields.io/badge/platform-Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![AppImage](https://img.shields.io/badge/Distribution-AppImage-orange)
-![GitHub stars](https://img.shields.io/github/stars/RossContino1/SysUpdate)
+![GitHub stars](https://img.shields.io/github/stars/RossContino1/RepoRover)
 
-⭐ If you find SysUpdate useful, consider starring the project!
+⭐ If you find RepoRover useful, consider starring the project!
 
 ---
 
 ## Overview
 
-SysUpdate is a simple graphical Linux system update utility.
+RepoRover is a simple graphical Linux system update utility.
 
-Instead of remembering package manager commands, SysUpdate provides a clean graphical interface that detects your Linux distribution and runs the appropriate update commands automatically.
+Instead of remembering package manager commands, RepoRover provides a clean graphical interface that detects your Linux distribution and runs the appropriate update commands automatically.
 
 The program uses native package managers and requests administrator privileges securely using **pkexec**.
 
-SysUpdate is distributed as a **portable AppImage**, allowing it to run on most Linux systems without requiring a traditional installation.
+RepoRover is distributed as a **portable AppImage**, allowing it to run on most Linux systems without requiring a traditional installation.
 
 ---
 ## Screenshots
@@ -35,7 +35,7 @@ SysUpdate is distributed as a **portable AppImage**, allowing it to run on most 
 
 ## Video Demo
 
-A short demonstrations of SysUpdate is available on YouTube.
+A short demonstrations of RepoRover is available on YouTube.
 
 2 minute tour
 https://youtu.be/w91HEJTV8BA
@@ -47,13 +47,13 @@ https://youtube.com/shorts/hKUy_gGfs1c?feature=share
 
 ## Homepage
 
-https://bytesbreadbbq.com/sysupdate/
+https://bytesbreadbbq.com/reporover/
 
 ---
 
 ## Source Code
 
-https://github.com/RossContino1/SysUpdate
+https://github.com/RossContino1/RepoRover
 
 ---
 
@@ -71,7 +71,7 @@ https://github.com/RossContino1/SysUpdate
 
 ## Supported Distributions
 
-SysUpdate currently supports:
+RepoRover currently supports:
 
 - Ubuntu
 - Debian
@@ -79,6 +79,7 @@ SysUpdate currently supports:
 - Fedora
 - Arch Linux
 - openSUSE Tumbleweed
+- CachyOS
 
 Support for additional distributions may be added in future releases.
 
@@ -86,7 +87,7 @@ Support for additional distributions may be added in future releases.
 
 ## Requirements
 
-SysUpdate requires the following components:
+RepoRover requires the following components:
 
 ### pkexec (PolicyKit)
 
@@ -121,12 +122,12 @@ sudo apt install fuse
 
 ## Installation
 
-SysUpdate installs to the user's home directory and does not require administrator privileges.
+RepoRover installs to the user's home directory and does not require administrator privileges.
 
 Installed locations:
-~/.local/bin/SysUpdate.AppImage
-~/.local/share/applications/com.bytesbreadbbq.sysupdate.desktop
-~/.local/share/icons/hicolor/256x256/apps/sysupdate.png
+~/.local/bin/RepoRover.AppImage
+~/.local/share/applications/com.bytesbreadbbq.reporover.desktop
+~/.local/share/icons/hicolor/256x256/apps/reporover.png
 
 
 ### Install Steps
@@ -140,13 +141,13 @@ Run the installer:
 ./install.sh
 
 
-After installation, SysUpdate will appear in your desktop environment's application menu.
+After installation, RepoRover will appear in your desktop environment's application menu.
 
 ---
 
-## Running SysUpdate
+## Running RepoRover
 
-Launch SysUpdate from your desktop application menu.
+Launch RepoRover from your desktop application menu.
 
 When an operation requires administrator privileges, the system will prompt for authentication using **pkexec**.
 
@@ -154,7 +155,7 @@ When an operation requires administrator privileges, the system will prompt for 
 
 ## First Run Behavior
 
-When SysUpdate is run on a system that has not been updated recently, the update process may take longer than usual.
+When RepoRover is run on a system that has not been updated recently, the update process may take longer than usual.
 
 During this time, the application may appear to pause or remain on the update screen. This is normal while the system gathers package information and checks for available updates.
 
@@ -164,7 +165,7 @@ Please allow the process to complete. Large update operations may take several m
 
 ## Uninstall
 
-To remove SysUpdate:
+To remove RepoRover:
 chmod +x uninstall.sh
 ./uninstall.sh
 
@@ -187,7 +188,7 @@ If a legacy installation is detected, the install or uninstall script may offer 
 
 For bug reports or feature requests, please open an issue on GitHub:
 
-https://github.com/RossContino1/SysUpdate/issues
+https://github.com/RossContino1/RepoRover/issues
 
 ---
 
@@ -204,9 +205,9 @@ A fast and simple graphical front-end for FFmpeg designed for modern Linux syste
 
 ---
 
-## ☕ Support SysUpdate
+## ☕ Support RepoRover
 
-SysUpdate is free to use. If it saves you time (or brisket), consider supporting development:
+RepoRover is free to use. If it saves you time (or brisket), consider supporting development:
 
 [![Support via PayPal](https://img.shields.io/badge/Support-PayPal-blue?style=for-the-badge&logo=paypal)](https://www.paypal.com/donate/?hosted_button_id=XS9MXN5AE5P3S)
 
