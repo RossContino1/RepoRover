@@ -1,0 +1,18 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RepoRover
+GenericName=System Updater
+Comment=Universal Linux package manager updater
+Exec=RepoRover-1.0.0-x86_64.AppImage
+Icon=reporover
+Terminal=false
+Categories=System;Utility;
+StartupWMClass=RepoRover
+Keywords=linux;update;package-manager;apt;dnf;pacman;zypper;
+Actions=RunUpdate;
+X-AppImage-Version=1.0.0
+
+[Desktop Action RunUpdate]
+Name=Run System Update
+Exec=RepoRover-1.0.0-x86_64.AppImage
