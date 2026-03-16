@@ -22,27 +22,6 @@ RepoRover is distributed as a **portable AppImage**, allowing it to run on most 
 ---
 ## Screenshots
 
-### OS Detection
-![OS Detection](docs/1.png)
-
-### Administrator Prompt
-![Sudo Prompt](docs/2.png)
-
-### Completed Update
-![Completed Update](docs/3.png)
-
----
-
-## Video Demo
-
-A short demonstrations of RepoRover is available on YouTube.
-
-2 minute tour
-https://youtu.be/w91HEJTV8BA
-
-30 second demo
-https://youtube.com/shorts/hKUy_gGfs1c?feature=share
-
 ---
 
 ## Homepage
