@@ -20,8 +20,23 @@ The program uses native package managers and requests administrator privileges s
 RepoRover is distributed as a **portable AppImage**, allowing it to run on most Linux systems without requiring a traditional installation.
 
 ---
-## Screenshots
+## 📸 Screenshots
 
+<p align="center">
+  <img src="docs/1.png" width="700"/>
+</p>
+
+<p align="center">
+  <img src="docs/2.png" width="700"/>
+</p>
+
+<p align="center">
+  <img src="docs/3.png" width="700"/>
+</p>
+
+<p align="center">
+  <img src="docs/4.png" width="700"/>
+</p>
 ---
 
 ## Homepage
