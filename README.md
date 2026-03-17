@@ -23,18 +23,22 @@ RepoRover is distributed as a **portable AppImage**, allowing it to run on most 
 ## 📸 Screenshots
 
 <p align="center">
+  Opening Screen
   <img src="docs/1.png" width="700"/>
 </p>
 
 <p align="center">
+  Distro version check
   <img src="docs/2.png" width="700"/>
 </p>
 
 <p align="center">
+  Sudo permissions prompted
   <img src="docs/3.png" width="700"/>
 </p>
 
 <p align="center">
+  Completion with multiple package managers updated
   <img src="docs/4.png" width="700"/>
 </p>
 ---
