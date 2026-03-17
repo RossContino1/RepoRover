@@ -1,0 +1,14 @@
+Website = "https://bytesbreadbbq.com/sysupdate"
+
+[Details]
+Icon = "assets/icon.png"
+Name = "SysUpdate"
+ID = "com.bytesbreadbbq.sysupdate"
+Version = "0.1.0"
+Build = 1
+
+[LinuxAndBSD]
+GenericName = "Linux Update Utility"
+Categories = ["System"]
+Comment = "Universal Linux update GUI for supported package managers"
+Keywords = ["linux", "update", "package", "system", "fyne"]
