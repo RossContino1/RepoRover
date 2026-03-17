@@ -33,12 +33,12 @@ RepoRover is distributed as a **portable AppImage**, allowing it to run on most 
 
 <p align="center">
   <b>🔍 Sudo Permission Prompt</b><br>
-  <img src="docs/repo-rover-results.png" width="700" style="border:3px solid black"/>
+  <img src="docs/3.png" width="700" style="border:3px solid black"/>
 </p>
 
 <p align="center">
   <b>📊 Results View</b><br>
-  <img src="docs/repo-rover-ui.png" width="700" style="border:3px solid black"/>
+  <img src="docs/4.png" width="700" style="border:3px solid black"/>
 </p>
 ---
 
