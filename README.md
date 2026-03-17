@@ -23,22 +23,22 @@ RepoRover is distributed as a **portable AppImage**, allowing it to run on most 
 ## 📸 Screenshots
 <p align="center">
   <b>🧭 Main Dashboard</b><br>
-  <img src="docs/1.png" width="700" border="1"/>
+  <img src="docs/1.png" width="700" style="border:3px solid black"/>
 </p>
 
 <p align="center">
   <b>🔍 Distro Discovery</b><br>
-  <img src="docs/2.png" width="700" border="1"/>
+  <img src="docs/2.png" width="700 style="border:3px solid black"/>
 </p>
 
 <p align="center">
   <b>🔍 Sudo Permission Prompt</b><br>
-  <img src="docs/repo-rover-results.png" width="700" border="1"/>
+  <img src="docs/repo-rover-results.png" width="700" style="border:3px solid black"/>
 </p>
 
 <p align="center">
   <b>📊 Results View</b><br>
-  <img src="docs/repo-rover-ui.png" width="700" border="1"/>
+  <img src="docs/repo-rover-ui.png" width="700" style="border:3px solid black"/>
 </p>
 ---
 
