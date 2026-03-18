@@ -5,9 +5,8 @@
 ![AppImage](https://img.shields.io/badge/Distribution-AppImage-orange)
 ![GitHub stars](https://img.shields.io/github/stars/RossContino1/RepoRover)
 
+⭐ Featured on LinuxLinks: https://www.linuxlinks.com/reporover-universal-linux-package-updater/
 ⭐ If you find RepoRover useful, consider starring the project!
-
-⭐ Featured on LinuxLinks:  https://www.linuxlinks.com/reporover-universal-linux-package-updater/
 ---
 
 ## Overview
