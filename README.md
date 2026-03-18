@@ -7,7 +7,7 @@
 
 ⭐ If you find RepoRover useful, consider starring the project!
 
-⭐ Featured on LinuxLinks: https://www.linuxlinks.com/reporover-universal-linux-package-updater/
+⭐ Featured on LinuxLinks:  https://www.linuxlinks.com/reporover-universal-linux-package-updater/
 ---
 
 ## Overview
