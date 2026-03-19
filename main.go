@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.0.0"
+const appVersion = "1.1.0"
 
 var busy atomic.Bool
 
@@ -35,6 +35,18 @@ type ManagerInfo struct {
 type OSInfo struct {
 	ID         string
 	PrettyName string
+}
+
+type AURAction int
+
+const (
+	AURActionManualTerminal AURAction = iota
+	AURActionAutoConfirm
+)
+
+type AURDecision struct {
+	Proceed bool
+	Action  AURAction
 }
 
 func main() {
@@ -158,7 +170,7 @@ func main() {
 
 	showAbout := func() {
 		aboutWin := a.NewWindow("About RepoRover")
-		aboutWin.Resize(fyne.NewSize(540, 380))
+		aboutWin.Resize(fyne.NewSize(560, 410))
 		aboutWin.SetIcon(iconRes)
 
 		icon := canvas.NewImageFromResource(iconRes)
@@ -181,7 +193,7 @@ func main() {
 				"• Detects supported package managers\n" +
 				"• Runs updates with pkexec where needed\n" +
 				"• Optional Flatpak and Snap updates\n" +
-				"• Optional AUR updates through yay on Arch-based systems\n" +
+				"• Safer Arch / AUR flow with user choice when yay is present\n" +
 				"• Dry Run and System Only modes\n" +
 				"• Copyable log output for testing\n\n" +
 				"Notes:\n" +
@@ -229,7 +241,7 @@ func main() {
 
 	showHelpWindow := func() {
 		helpWin := a.NewWindow("RepoRover Help")
-		helpWin.Resize(fyne.NewSize(760, 560))
+		helpWin.Resize(fyne.NewSize(780, 600))
 		helpWin.SetIcon(iconRes)
 
 		helpText := widget.NewLabel(
@@ -264,9 +276,10 @@ System Only
 Runs only the primary system package manager and skips Flatpak/Snap.
 
 Arch / AUR Support
-On Arch-based systems, RepoRover runs:
-- pacman -Syu for official repositories
-- yay -Sua for AUR-only updates, but only if yay is already installed
+On Arch-based systems, RepoRover now:
+- runs pacman -Syu for official repositories without blindly forcing yay
+- checks for AUR-only updates with yay -Qua if yay is installed
+- lets you choose whether to handle yay manually or auto-confirm yay here
 
 Progress and Logs
 The status bar shows the current task.
@@ -367,7 +380,7 @@ Testing Tips
 
 			if hasCommand("pacman") {
 				if hasCommand("yay") {
-					appendOutput("✔ yay detected (AUR updates available on Arch-based systems)")
+					appendOutput("✔ yay detected (AUR updates can be reviewed before running)")
 				} else {
 					appendOutput("➜ yay not detected (AUR updates will be skipped)")
 				}
@@ -436,7 +449,7 @@ Testing Tips
 			for _, m := range selected {
 				setStatus("Running "+m.Name+"...", float64(done)/float64(totalSteps))
 
-				ok := runManager(m, dryRun.Checked, appendOutput)
+				ok := runManager(a, w, m, dryRun.Checked, appendOutput)
 				if !ok {
 					appendOutput("Update session stopped because " + m.Name + " failed.")
 					setStatus(m.Name+" failed", 1)
@@ -688,44 +701,42 @@ func detectPrimaryManager(managers []ManagerInfo) string {
 	return ""
 }
 
-func runManager(m ManagerInfo, dryRun bool, log func(string)) bool {
+func runManager(a fyne.App, w fyne.Window, m ManagerInfo, dryRun bool, log func(string)) bool {
 	log("")
 	log("Running " + m.Name + "...")
 
-	var steps [][]string
-
 	switch m.Name {
 	case "dnf":
-		steps = [][]string{
-			{"pkexec", "dnf", "upgrade", "--refresh", "-y"},
-		}
+		return runSteps(m.Name, dryRun, log,
+			[]string{"pkexec", "dnf", "upgrade", "--refresh", "-y"},
+		)
 	case "apt":
-		steps = [][]string{
-			{"pkexec", "apt", "update"},
-			{"pkexec", "apt", "upgrade", "-y"},
-		}
+		return runSteps(m.Name, dryRun, log,
+			[]string{"pkexec", "apt", "update"},
+			[]string{"pkexec", "apt", "upgrade", "-y"},
+		)
 	case "zypper":
-		steps = [][]string{
-			{"pkexec", "zypper", "refresh"},
-			{"pkexec", "zypper", "update", "-y"},
-		}
+		return runSteps(m.Name, dryRun, log,
+			[]string{"pkexec", "zypper", "refresh"},
+			[]string{"pkexec", "zypper", "update", "-y"},
+		)
 	case "pacman":
-		steps = [][]string{
-			{"pkexec", "pacman", "-Syu", "--noconfirm", "--color=never"},
-		}
+		return runPacmanFlow(a, w, dryRun, log)
 	case "flatpak":
-		steps = [][]string{
-			{"flatpak", "update", "-y"},
-		}
+		return runSteps(m.Name, dryRun, log,
+			[]string{"flatpak", "update", "-y"},
+		)
 	case "snap":
-		steps = [][]string{
-			{"pkexec", "snap", "refresh"},
-		}
+		return runSteps(m.Name, dryRun, log,
+			[]string{"pkexec", "snap", "refresh"},
+		)
 	default:
 		log("✖ unsupported manager: " + m.Name)
 		return false
 	}
+}
 
+func runSteps(managerName string, dryRun bool, log func(string), steps ...[]string) bool {
 	for _, step := range steps {
 		log("> " + strings.Join(step, " "))
 
@@ -735,54 +746,207 @@ func runManager(m ManagerInfo, dryRun bool, log func(string)) bool {
 		}
 
 		out, err := runCommand(step[0], step[1:]...)
-
-		if strings.TrimSpace(out) != "" {
-			for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-				log(line)
-			}
-		} else {
-			log("  command completed with no terminal output")
-		}
+		logCommandOutput(out, log, "  command completed with no terminal output")
 
 		if err != nil {
-			log("✖ " + m.Name + " failed: " + explainCommandError(err))
+			log("✖ " + managerName + " failed: " + explainCommandError(err))
 			return false
 		}
 
 		log("  step completed successfully")
 	}
 
-	if m.Name == "pacman" {
-		if hasCommand("yay") {
-			log("> yay -Sua --noconfirm")
+	log("✔ " + managerName + " complete")
+	return true
+}
 
-			if dryRun {
-				log("  [dry-run] not executed")
-			} else {
-				out, err := runCommand("yay", "-Sua", "--noconfirm")
+func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) bool {
+	log("")
+	log("Pacman official repository update phase...")
+	pacmanStep := []string{"pkexec", "pacman", "-Syu", "--noconfirm", "--color=never"}
+	log("> " + strings.Join(pacmanStep, " "))
 
-				if strings.TrimSpace(out) != "" {
-					for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-						log(line)
-					}
-				} else {
-					log("  yay completed with no terminal output")
-				}
-
-				if err != nil {
-					log("✖ yay failed: " + explainCommandError(err))
-					return false
-				}
-
-				log("  yay AUR step completed successfully")
-			}
-		} else {
-			log("➜ yay not detected; skipping AUR updates")
+	if dryRun {
+		log("  [dry-run] official repo update would run with --noconfirm")
+	} else {
+		out, err := runCommand(pacmanStep[0], pacmanStep[1:]...)
+		logCommandOutput(out, log, "  pacman completed with no terminal output")
+		if err != nil {
+			log("✖ pacman failed: " + explainCommandError(err))
+			return false
 		}
+		log("  pacman official repo step completed successfully")
 	}
 
-	log("✔ " + m.Name + " complete")
+	if !hasCommand("yay") {
+		log("➜ yay not detected; skipping AUR updates")
+		log("✔ pacman complete")
+		return true
+	}
+
+	aurUpdates, aurErr := getAURUpdates()
+	if aurErr != nil {
+		log("➜ could not query AUR updates with yay -Qua: " + aurErr.Error())
+		log("➜ AUR step skipped to avoid unsafe assumptions")
+		log("✔ pacman complete")
+		return true
+	}
+
+	if len(aurUpdates) == 0 {
+		log("➜ no AUR updates found")
+		log("✔ pacman complete")
+		return true
+	}
+
+	log("")
+	log("===== AUR UPDATES DETECTED =====")
+	log(fmt.Sprintf("AUR package count: %d", len(aurUpdates)))
+	for _, pkg := range aurUpdates {
+		log("  • " + pkg)
+	}
+	log("================================")
+
+	if dryRun {
+		log("  [dry-run] AUR decision dialog would appear here")
+		log("✔ pacman complete")
+		return true
+	}
+
+	decision, ok := promptAURDecision(a, w, aurUpdates)
+	if !ok {
+		log("✖ AUR choice dialog could not be displayed")
+		return false
+	}
+	if !decision.Proceed {
+		log("Update session cancelled at AUR decision dialog")
+		return false
+	}
+
+	switch decision.Action {
+	case AURActionManualTerminal:
+		log("➜ user chose to run yay manually in terminal")
+		log("➜ run manually: yay -Sua")
+
+	case AURActionAutoConfirm:
+		log("> yay -Sua --noconfirm")
+		out, err := runCommand("yay", "-Sua", "--noconfirm")
+		logCommandOutput(out, log, "  yay completed with no terminal output")
+		if err != nil {
+			log("✖ yay failed: " + explainCommandError(err))
+			return false
+		}
+		log("  yay AUR auto-confirm step completed successfully")
+	}
+
+	log("✔ pacman complete")
 	return true
+}
+
+func getAURUpdates() ([]string, error) {
+	out, err := runCommand("yay", "-Qua")
+	trimmed := strings.TrimSpace(out)
+
+	if trimmed == "" {
+		if err != nil {
+			return []string{}, nil
+		}
+		return []string{}, nil
+	}
+
+	var updates []string
+	for _, line := range strings.Split(trimmed, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		updates = append(updates, line)
+	}
+
+	return updates, nil
+}
+
+func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecision, bool) {
+	result := make(chan AURDecision, 1)
+	shown := make(chan bool, 1)
+
+	fyne.Do(func() {
+		updatesBox := widget.NewMultiLineEntry()
+		updatesBox.SetText(strings.Join(aurUpdates, "\n"))
+		updatesBox.Disable()
+		updatesBox.Wrapping = fyne.TextWrapOff
+		updatesBox.SetMinRowsVisible(10)
+
+		radio := widget.NewRadioGroup([]string{
+			"I will execute yay myself from terminal with yay -Sua",
+			"Update everything from AUR here with yay -Sua --noconfirm",
+		}, nil)
+		radio.SetSelected(radio.Options[0])
+
+		warning := widget.NewLabel("AUR updates were detected. Choose how you want to handle the AUR step.")
+		warning.Wrapping = fyne.TextWrapWord
+
+		label := widget.NewLabel(
+			fmt.Sprintf("AUR packages reported by yay -Qua (%d):", len(aurUpdates)),
+		)
+
+		content := container.NewBorder(
+			container.NewVBox(
+				warning,
+				widget.NewSeparator(),
+				label,
+			),
+			nil,
+			nil,
+			nil,
+			container.NewVBox(
+				container.NewScroll(updatesBox),
+				widget.NewSeparator(),
+				radio,
+			),
+		)
+
+		dlg := dialog.NewCustomConfirm(
+			fmt.Sprintf("AUR Updates Detected (%d)", len(aurUpdates)),
+			"OK",
+			"Cancel",
+			content,
+			func(ok bool) {
+				if !ok {
+					result <- AURDecision{Proceed: false}
+					return
+				}
+
+				decision := AURDecision{Proceed: true, Action: AURActionManualTerminal}
+				switch radio.Selected {
+				case radio.Options[1]:
+					decision.Action = AURActionAutoConfirm
+				default:
+					decision.Action = AURActionManualTerminal
+				}
+				result <- decision
+			}, w)
+		dlg.Resize(fyne.NewSize(760, 560))
+		dlg.Show()
+		shown <- true
+	})
+
+	select {
+	case <-shown:
+		decision := <-result
+		return decision, true
+	case <-time.After(2 * time.Second):
+		return AURDecision{}, false
+	}
+}
+
+func logCommandOutput(out string, log func(string), emptyMessage string) {
+	if strings.TrimSpace(out) == "" {
+		log(emptyMessage)
+		return
+	}
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		log(line)
+	}
 }
 
 func runCommand(name string, args ...string) (string, error) {
