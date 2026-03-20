@@ -1,5 +1,8 @@
 # RepoRover – Linux System Update Utility
 
+## Latest Release
+👉 RepoRover v1.1.1 now available (AUR improvements + paru support)
+
 ⭐ Featured on LinuxLinks: [Read the review](https://www.linuxlinks.com/reporover-universal-linux-package-updater/)
 
 ![Platform](https://img.shields.io/badge/platform-Linux-blue)
