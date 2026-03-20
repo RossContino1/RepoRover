@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.1.0"
+const appVersion = "1.1.1"
 
 var busy atomic.Bool
 
@@ -198,7 +198,8 @@ func main() {
 				"• Detects supported package managers\n" +
 				"• Runs updates with pkexec where needed\n" +
 				"• Optional Flatpak and Snap updates\n" +
-				"• Safer Arch / AUR flow when yay is present\n" +
+				"• Safer Arch / AUR flow when an AUR helper is present\n" +
+				"• Supports paru or yay for interactive AUR updates\n" +
 				"• Launches AUR updates in terminal for interactive prompts\n" +
 				"• Dry Run and System Only modes\n" +
 				"• Copyable log output for testing\n\n" +
@@ -206,7 +207,7 @@ func main() {
 				"• Some AppImage environments may require FUSE\n" +
 				"• Reboot detection depends on distro support\n" +
 				"• System package tools are provided by the host distro\n" +
-				"• yay is only used if it is already installed",
+				"• paru or yay is only used if already installed",
 		)
 		body.Wrapping = fyne.TextWrapWord
 
@@ -284,9 +285,9 @@ Runs only the primary system package manager and skips Flatpak/Snap.
 Arch / AUR Support
 On Arch-based systems, RepoRover:
 - runs pacman -Syu for official repositories with pkexec
-- checks for AUR-only updates with yay -Qua if yay is installed
+- checks for AUR-only updates with paru -Qua or yay -Qua if an AUR helper is installed
 - lets you choose whether to skip the AUR step or open it in a terminal
-- does not try to force yay through the GUI, because yay may need an interactive terminal for sudo and package prompts
+- does not try to force AUR helper prompts through the GUI, because paru/yay may need an interactive terminal for sudo and package prompts
 
 Progress and Logs
 The status bar shows the current task.
@@ -309,8 +310,8 @@ RepoRover uses pkexec for system package manager commands that need elevation.
 That means the desktop environment may prompt for an administrator password.
 
 AUR Terminal Note
-When AUR updates are detected, RepoRover tries to launch a terminal emulator and run yay -Sua there.
-That allows sudo prompts, package prompts, and other yay interactions to behave normally.
+When AUR updates are detected, RepoRover tries to launch a terminal emulator and run paru -Sua or yay -Sua there.
+That allows sudo prompts, package prompts, and other AUR helper interactions to behave normally.
 
 Testing Tips
 - Use Dry Run first on a new distro
@@ -373,13 +374,19 @@ Testing Tips
 			appendOutput("pkexec: " + commandStatus("pkexec"))
 			appendOutput("flatpak: " + commandStatus("flatpak"))
 			appendOutput("snap: " + commandStatus("snap"))
+			appendOutput("paru: " + commandStatus("paru"))
 			appendOutput("yay: " + commandStatus("yay"))
 
-			if hasCommand("pacman") && hasCommand("yay") {
-				if term, ok := detectTerminalCommand(); ok {
-					appendOutput("terminal emulator: detected (" + term.Name + ")")
+			if hasCommand("pacman") {
+				if aurHelper := detectAURHelper(); aurHelper != "" {
+					appendOutput("AUR helper: detected (" + aurHelper + ")")
+					if term, ok := detectTerminalCommand(); ok {
+						appendOutput("terminal emulator: detected (" + term.Name + ")")
+					} else {
+						appendOutput("terminal emulator: not detected")
+					}
 				} else {
-					appendOutput("terminal emulator: not detected")
+					appendOutput("AUR helper: not detected")
 				}
 			}
 
@@ -398,10 +405,10 @@ Testing Tips
 			}
 
 			if hasCommand("pacman") {
-				if hasCommand("yay") {
-					appendOutput("✔ yay detected (AUR updates can be reviewed before running)")
+				if aurHelper := detectAURHelper(); aurHelper != "" {
+					appendOutput("✔ AUR helper detected: " + aurHelper + " (AUR updates can be reviewed before running)")
 				} else {
-					appendOutput("➜ yay not detected (AUR updates will be skipped)")
+					appendOutput("➜ no AUR helper detected (AUR updates will be skipped)")
 				}
 			}
 
@@ -692,6 +699,16 @@ func hasCommand(name string) bool {
 	return err == nil
 }
 
+func detectAURHelper() string {
+	if hasCommand("paru") {
+		return "paru"
+	}
+	if hasCommand("yay") {
+		return "yay"
+	}
+	return ""
+}
+
 func detectManagers() []ManagerInfo {
 	all := []ManagerInfo{
 		{Name: "dnf", IsSystem: true},
@@ -797,28 +814,30 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 		log("  pacman official repo step completed successfully")
 	}
 
-	if !hasCommand("yay") {
-		log("➜ yay not detected; skipping AUR updates")
+	aurHelper := detectAURHelper()
+	if aurHelper == "" {
+		log("➜ no AUR helper detected; skipping AUR updates")
 		log("✔ pacman complete")
 		return true
 	}
 
-	aurUpdates, aurErr := getAURUpdates()
+	aurUpdates, aurErr := getAURUpdates(aurHelper)
 	if aurErr != nil {
-		log("➜ could not query AUR updates with yay -Qua: " + aurErr.Error())
+		log("➜ could not query AUR updates with " + aurHelper + " -Qua: " + aurErr.Error())
 		log("➜ AUR step skipped to avoid unsafe assumptions")
 		log("✔ pacman complete")
 		return true
 	}
 
 	if len(aurUpdates) == 0 {
-		log("➜ no AUR updates found")
+		log("➜ no AUR updates found with " + aurHelper)
 		log("✔ pacman complete")
 		return true
 	}
 
 	log("")
 	log("===== AUR UPDATES DETECTED =====")
+	log("AUR helper: " + aurHelper)
 	log(fmt.Sprintf("AUR package count: %d", len(aurUpdates)))
 	for _, pkg := range aurUpdates {
 		log("  • " + pkg)
@@ -827,12 +846,12 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 
 	if dryRun {
 		log("  [dry-run] AUR decision dialog would appear here")
-		log("  [dry-run] if selected, RepoRover would try to open a terminal for: yay -Sua")
+		log("  [dry-run] if selected, RepoRover would try to open a terminal for: " + aurHelper + " -Sua")
 		log("✔ pacman complete")
 		return true
 	}
 
-	decision, ok := promptAURDecision(a, w, aurUpdates)
+	decision, ok := promptAURDecision(a, w, aurHelper, aurUpdates)
 	if !ok {
 		log("✖ AUR choice dialog could not be displayed")
 		return false
@@ -847,11 +866,11 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 		log("➜ user chose to skip the AUR step")
 	case AURActionOpenTerminal:
 		log("➜ user chose to open AUR updates in terminal")
-		if err := launchAURInTerminal(); err != nil {
-			log("✖ could not launch terminal for yay: " + err.Error())
+		if err := launchAURInTerminal(aurHelper); err != nil {
+			log("✖ could not launch terminal for " + aurHelper + ": " + err.Error())
 			return false
 		}
-		log("  terminal launched for: yay -Sua")
+		log("  terminal launched for: " + aurHelper + " -Sua")
 		log("  complete the AUR prompts in the terminal window")
 		log("  when finished, review the result and close that terminal window")
 	default:
@@ -863,8 +882,8 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 	return true
 }
 
-func getAURUpdates() ([]string, error) {
-	out, err := runCommand("yay", "-Qua")
+func getAURUpdates(aurHelper string) ([]string, error) {
+	out, err := runCommand(aurHelper, "-Qua")
 	trimmed := strings.TrimSpace(out)
 
 	if trimmed == "" {
@@ -886,12 +905,11 @@ func getAURUpdates() ([]string, error) {
 	return updates, nil
 }
 
-func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecision, bool) {
+func promptAURDecision(a fyne.App, w fyne.Window, aurHelper string, aurUpdates []string) (AURDecision, bool) {
 	result := make(chan AURDecision, 1)
 	shown := make(chan bool, 1)
 
 	fyne.Do(func() {
-
 		updatesBox := widget.NewTextGrid()
 		updatesBox.SetText(strings.Join(aurUpdates, "\n"))
 		updatesScroll := container.NewScroll(updatesBox)
@@ -899,17 +917,17 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecis
 
 		radio := widget.NewRadioGroup([]string{
 			"Skip AUR step for now",
-			"Open terminal and run yay -Sua",
+			"Open terminal and run " + aurHelper + " -Sua",
 		}, nil)
 		radio.SetSelected(radio.Options[1])
 
 		warning := widget.NewLabel(
-			"AUR updates were detected. RepoRover can open a terminal window and run yay -Sua there so sudo and package prompts work normally. When the update finishes, review the output and close the terminal window.",
+			"AUR updates were detected. RepoRover can open a terminal window and run " + aurHelper + " -Sua there so sudo and package prompts work normally. When the update finishes, review the output and close the terminal window.",
 		)
 		warning.Wrapping = fyne.TextWrapWord
 
 		label := widget.NewLabel(
-			fmt.Sprintf("AUR packages reported by yay -Qua (%d):", len(aurUpdates)),
+			fmt.Sprintf("AUR packages reported by %s -Qua (%d):", aurHelper, len(aurUpdates)),
 		)
 
 		content := container.NewBorder(
@@ -1024,13 +1042,13 @@ func buildTerminalArgs(termName, shellCommand string) []string {
 	}
 }
 
-func launchAURInTerminal() error {
+func launchAURInTerminal(aurHelper string) error {
 	term, ok := detectTerminalCommand()
 	if !ok {
 		return fmt.Errorf("no supported terminal emulator was detected")
 	}
 
-	shellCommand := `yay -Sua; status=$?; echo; if [ $status -eq 0 ]; then echo "AUR update finished successfully."; else echo "yay exited with status $status."; fi; sleep 2; exit $status`
+	shellCommand := aurHelper + ` -Sua; status=$?; echo; if [ $status -eq 0 ]; then echo "AUR update finished successfully."; else echo "` + aurHelper + ` exited with status $status."; fi; sleep 2; exit $status`
 	args := buildTerminalArgs(term.Name, shellCommand)
 
 	cmd := exec.Command(term.Name, args...)

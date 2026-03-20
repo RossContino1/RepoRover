@@ -40,13 +40,18 @@ type OSInfo struct {
 type AURAction int
 
 const (
-	AURActionManualTerminal AURAction = iota
-	AURActionAutoConfirm
+	AURActionSkip AURAction = iota
+	AURActionOpenTerminal
 )
 
 type AURDecision struct {
 	Proceed bool
 	Action  AURAction
+}
+
+type TerminalLaunch struct {
+	Name string
+	Args []string
 }
 
 func main() {
@@ -170,7 +175,7 @@ func main() {
 
 	showAbout := func() {
 		aboutWin := a.NewWindow("About RepoRover")
-		aboutWin.Resize(fyne.NewSize(560, 410))
+		aboutWin.Resize(fyne.NewSize(560, 430))
 		aboutWin.SetIcon(iconRes)
 
 		icon := canvas.NewImageFromResource(iconRes)
@@ -193,7 +198,8 @@ func main() {
 				"• Detects supported package managers\n" +
 				"• Runs updates with pkexec where needed\n" +
 				"• Optional Flatpak and Snap updates\n" +
-				"• Safer Arch / AUR flow with user choice when yay is present\n" +
+				"• Safer Arch / AUR flow when yay is present\n" +
+				"• Launches AUR updates in terminal for interactive prompts\n" +
 				"• Dry Run and System Only modes\n" +
 				"• Copyable log output for testing\n\n" +
 				"Notes:\n" +
@@ -241,7 +247,7 @@ func main() {
 
 	showHelpWindow := func() {
 		helpWin := a.NewWindow("RepoRover Help")
-		helpWin.Resize(fyne.NewSize(780, 600))
+		helpWin.Resize(fyne.NewSize(780, 620))
 		helpWin.SetIcon(iconRes)
 
 		helpText := widget.NewLabel(
@@ -276,10 +282,11 @@ System Only
 Runs only the primary system package manager and skips Flatpak/Snap.
 
 Arch / AUR Support
-On Arch-based systems, RepoRover now:
-- runs pacman -Syu for official repositories without blindly forcing yay
+On Arch-based systems, RepoRover:
+- runs pacman -Syu for official repositories with pkexec
 - checks for AUR-only updates with yay -Qua if yay is installed
-- lets you choose whether to handle yay manually or auto-confirm yay here
+- lets you choose whether to skip the AUR step or open it in a terminal
+- does not try to force yay through the GUI, because yay may need an interactive terminal for sudo and package prompts
 
 Progress and Logs
 The status bar shows the current task.
@@ -300,6 +307,10 @@ If you later distribute RepoRover as an AppImage, some systems may require FUSE 
 Privileges
 RepoRover uses pkexec for system package manager commands that need elevation.
 That means the desktop environment may prompt for an administrator password.
+
+AUR Terminal Note
+When AUR updates are detected, RepoRover tries to launch a terminal emulator and run yay -Sua there.
+That allows sudo prompts, package prompts, and other yay interactions to behave normally.
 
 Testing Tips
 - Use Dry Run first on a new distro
@@ -363,6 +374,14 @@ Testing Tips
 			appendOutput("flatpak: " + commandStatus("flatpak"))
 			appendOutput("snap: " + commandStatus("snap"))
 			appendOutput("yay: " + commandStatus("yay"))
+
+			if hasCommand("pacman") && hasCommand("yay") {
+				if term, ok := detectTerminalCommand(); ok {
+					appendOutput("terminal emulator: detected (" + term.Name + ")")
+				} else {
+					appendOutput("terminal emulator: not detected")
+				}
+			}
 
 			if len(managers) == 0 {
 				appendOutput("No supported update systems detected.")
@@ -808,6 +827,7 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 
 	if dryRun {
 		log("  [dry-run] AUR decision dialog would appear here")
+		log("  [dry-run] if selected, RepoRover would try to open a terminal for: yay -Sua")
 		log("✔ pacman complete")
 		return true
 	}
@@ -823,19 +843,20 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 	}
 
 	switch decision.Action {
-	case AURActionManualTerminal:
-		log("➜ user chose to run yay manually in terminal")
-		log("➜ run manually: yay -Sua")
-
-	case AURActionAutoConfirm:
-		log("> yay -Sua --noconfirm")
-		out, err := runCommand("yay", "-Sua", "--noconfirm")
-		logCommandOutput(out, log, "  yay completed with no terminal output")
-		if err != nil {
-			log("✖ yay failed: " + explainCommandError(err))
+	case AURActionSkip:
+		log("➜ user chose to skip the AUR step")
+	case AURActionOpenTerminal:
+		log("➜ user chose to open AUR updates in terminal")
+		if err := launchAURInTerminal(); err != nil {
+			log("✖ could not launch terminal for yay: " + err.Error())
 			return false
 		}
-		log("  yay AUR auto-confirm step completed successfully")
+		log("  terminal launched for: yay -Sua")
+		log("  complete the AUR prompts in the terminal window")
+		log("  when finished, review the result and close that terminal window")
+	default:
+		log("✖ unknown AUR action")
+		return false
 	}
 
 	log("✔ pacman complete")
@@ -870,19 +891,21 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecis
 	shown := make(chan bool, 1)
 
 	fyne.Do(func() {
-		updatesBox := widget.NewMultiLineEntry()
+
+		updatesBox := widget.NewTextGrid()
 		updatesBox.SetText(strings.Join(aurUpdates, "\n"))
-		updatesBox.Disable()
-		updatesBox.Wrapping = fyne.TextWrapOff
-		updatesBox.SetMinRowsVisible(10)
+		updatesScroll := container.NewScroll(updatesBox)
+		updatesScroll.SetMinSize(fyne.NewSize(680, 220))
 
 		radio := widget.NewRadioGroup([]string{
-			"I will execute yay myself from terminal with yay -Sua",
-			"Update everything from AUR here with yay -Sua --noconfirm",
+			"Skip AUR step for now",
+			"Open terminal and run yay -Sua",
 		}, nil)
-		radio.SetSelected(radio.Options[0])
+		radio.SetSelected(radio.Options[1])
 
-		warning := widget.NewLabel("AUR updates were detected. Choose how you want to handle the AUR step.")
+		warning := widget.NewLabel(
+			"AUR updates were detected. RepoRover can open a terminal window and run yay -Sua there so sudo and package prompts work normally. When the update finishes, review the output and close the terminal window.",
+		)
 		warning.Wrapping = fyne.TextWrapWord
 
 		label := widget.NewLabel(
@@ -899,7 +922,7 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecis
 			nil,
 			nil,
 			container.NewVBox(
-				container.NewScroll(updatesBox),
+				updatesScroll,
 				widget.NewSeparator(),
 				radio,
 			),
@@ -916,12 +939,12 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecis
 					return
 				}
 
-				decision := AURDecision{Proceed: true, Action: AURActionManualTerminal}
+				decision := AURDecision{Proceed: true, Action: AURActionSkip}
 				switch radio.Selected {
 				case radio.Options[1]:
-					decision.Action = AURActionAutoConfirm
+					decision.Action = AURActionOpenTerminal
 				default:
-					decision.Action = AURActionManualTerminal
+					decision.Action = AURActionSkip
 				}
 				result <- decision
 			}, w)
@@ -937,6 +960,85 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurUpdates []string) (AURDecis
 	case <-time.After(2 * time.Second):
 		return AURDecision{}, false
 	}
+}
+
+func detectTerminalCommand() (TerminalLaunch, bool) {
+	if termEnv := strings.TrimSpace(os.Getenv("TERMINAL")); termEnv != "" {
+		if _, err := exec.LookPath(termEnv); err == nil {
+			return TerminalLaunch{Name: termEnv}, true
+		}
+	}
+
+	candidates := []string{
+		"x-terminal-emulator",
+		"kgx",
+		"gnome-terminal",
+		"konsole",
+		"xfce4-terminal",
+		"mate-terminal",
+		"tilix",
+		"lxterminal",
+		"alacritty",
+		"kitty",
+		"wezterm",
+		"xterm",
+	}
+
+	for _, name := range candidates {
+		if _, err := exec.LookPath(name); err == nil {
+			return TerminalLaunch{Name: name}, true
+		}
+	}
+
+	return TerminalLaunch{}, false
+}
+
+func buildTerminalArgs(termName, shellCommand string) []string {
+	switch termName {
+	case "x-terminal-emulator":
+		return []string{"-e", "sh", "-lc", shellCommand}
+	case "kgx":
+		return []string{"--", "sh", "-lc", shellCommand}
+	case "gnome-terminal":
+		return []string{"--", "sh", "-lc", shellCommand}
+	case "konsole":
+		return []string{"-e", "sh", "-lc", shellCommand}
+	case "xfce4-terminal":
+		return []string{"--command=sh -lc '" + escapeSingleQuotes(shellCommand) + "'"}
+	case "mate-terminal":
+		return []string{"--", "sh", "-lc", shellCommand}
+	case "tilix":
+		return []string{"-e", "sh", "-lc", shellCommand}
+	case "lxterminal":
+		return []string{"-e", "sh -lc '" + escapeSingleQuotes(shellCommand) + "'"}
+	case "alacritty":
+		return []string{"-e", "sh", "-lc", shellCommand}
+	case "kitty":
+		return []string{"sh", "-lc", shellCommand}
+	case "wezterm":
+		return []string{"start", "--always-new-process", "sh", "-lc", shellCommand}
+	case "xterm":
+		return []string{"-e", "sh", "-lc", shellCommand}
+	default:
+		return []string{"-e", "sh", "-lc", shellCommand}
+	}
+}
+
+func launchAURInTerminal() error {
+	term, ok := detectTerminalCommand()
+	if !ok {
+		return fmt.Errorf("no supported terminal emulator was detected")
+	}
+
+	shellCommand := `yay -Sua; status=$?; echo; if [ $status -eq 0 ]; then echo "AUR update finished successfully."; else echo "yay exited with status $status."; fi; sleep 2; exit $status`
+	args := buildTerminalArgs(term.Name, shellCommand)
+
+	cmd := exec.Command(term.Name, args...)
+	return cmd.Start()
+}
+
+func escapeSingleQuotes(s string) string {
+	return strings.ReplaceAll(s, `'`, `'\''`)
 }
 
 func logCommandOutput(out string, log func(string), emptyMessage string) {

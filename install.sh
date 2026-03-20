@@ -2,10 +2,10 @@
 set -Eeuo pipefail
 
 APP_NAME="RepoRover"
-APPIMAGE_NAME="RepoRover-1.1.0-x86_64.AppImage"
+APPIMAGE_NAME="RepoRover-1.1.1-x86_64.AppImage"
 DESKTOP_NAME="reporover.desktop"
 ICON_NAME="reporover"
-VERSION="1.1.0"
+VERSION="1.1.1"
 
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APPIMAGE_SOURCE="$SOURCE_DIR/$APPIMAGE_NAME"
