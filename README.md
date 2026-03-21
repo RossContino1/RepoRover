@@ -3,7 +3,7 @@
 # RepoRover
 
 <p align="center">
-  <img src="docs/output.gif" height="350"/>
+  <img src="docs/output.gif" height="400"/>
 </p>
 
 Update apt, snap, flatpak, and more in one click across Linux distributions
