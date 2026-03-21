@@ -1,5 +1,13 @@
 # RepoRover – Linux System Update Utility
 
+# RepoRover
+
+<p align="center">
+  <img src="docs/output.gif" width="700"/>
+</p>
+
+Update apt, snap, flatpak, and more in one click across Linux distributions
+
 ## Latest Release
 👉 RepoRover v1.1.1 now available (AUR improvements + paru support)
 
