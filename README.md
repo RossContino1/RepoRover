@@ -1,7 +1,8 @@
 # RepoRover
+“Update apt, snap, flatpak, pacman, zypper, and AUR — all in one click.”
 
 <p align="center">
-  <img src="docs/output.gif" height="400" alt="RepoRover demo"/>
+  <img src="docs/output.gif" height="400" style="border:3px solid black" alt="RepoRover demo"/>
 </p>
 
 **RepoRover** is a graphical Linux system update utility that helps you update multiple package managers from one interface.
