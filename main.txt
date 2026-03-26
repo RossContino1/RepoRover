@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.1.1"
+const appVersion = "1.2.1"
 
 var busy atomic.Bool
 
@@ -200,6 +200,7 @@ func main() {
 				"• Optional Flatpak and Snap updates\n" +
 				"• Safer Arch / AUR flow when an AUR helper is present\n" +
 				"• Supports paru or yay for interactive AUR updates\n" +
+				"• Health-checks AUR helpers before using them\n" +
 				"• Launches AUR updates in terminal for interactive prompts\n" +
 				"• Dry Run and System Only modes\n" +
 				"• Copyable log output for testing\n\n" +
@@ -286,6 +287,7 @@ Arch / AUR Support
 On Arch-based systems, RepoRover:
 - runs pacman -Syu for official repositories with pkexec
 - checks for AUR-only updates with paru -Qua or yay -Qua if an AUR helper is installed
+- health-checks AUR helpers and will fall back if one is broken
 - lets you choose whether to skip the AUR step or open it in a terminal
 - does not try to force AUR helper prompts through the GUI, because paru/yay may need an interactive terminal for sudo and package prompts
 
@@ -378,15 +380,16 @@ Testing Tips
 			appendOutput("yay: " + commandStatus("yay"))
 
 			if hasCommand("pacman") {
-				if aurHelper := detectAURHelper(); aurHelper != "" {
-					appendOutput("AUR helper: detected (" + aurHelper + ")")
+				aurStatus := detectWorkingAURHelper(appendOutput)
+				if aurStatus.Working {
+					appendOutput("AUR helper: working (" + aurStatus.Name + ")")
 					if term, ok := detectTerminalCommand(); ok {
 						appendOutput("terminal emulator: detected (" + term.Name + ")")
 					} else {
 						appendOutput("terminal emulator: not detected")
 					}
 				} else {
-					appendOutput("AUR helper: not detected")
+					appendOutput("AUR helper: no working helper detected")
 				}
 			}
 
@@ -405,10 +408,11 @@ Testing Tips
 			}
 
 			if hasCommand("pacman") {
-				if aurHelper := detectAURHelper(); aurHelper != "" {
-					appendOutput("✔ AUR helper detected: " + aurHelper + " (AUR updates can be reviewed before running)")
+				aurStatus := detectWorkingAURHelper(nil)
+				if aurStatus.Working {
+					appendOutput("✔ working AUR helper detected: " + aurStatus.Name + " (AUR updates can be reviewed before running)")
 				} else {
-					appendOutput("➜ no AUR helper detected (AUR updates will be skipped)")
+					appendOutput("➜ no working AUR helper detected (AUR updates will be skipped)")
 				}
 			}
 
@@ -699,14 +703,88 @@ func hasCommand(name string) bool {
 	return err == nil
 }
 
+type AURHelperStatus struct {
+	Name     string
+	Tested   bool
+	Working  bool
+	Details  string
+	ExitCode int
+}
+
 func detectAURHelper() string {
-	if hasCommand("paru") {
-		return "paru"
+	return detectWorkingAURHelper(nil).Name
+}
+
+func detectWorkingAURHelper(log func(string)) AURHelperStatus {
+	candidates := []string{"paru", "yay"}
+	var firstFailure AURHelperStatus
+
+	for _, helper := range candidates {
+		status := probeAURHelper(helper)
+
+		if log != nil {
+			switch {
+			case !status.Tested:
+				log("AUR helper check: " + helper + " not installed")
+			case status.Working:
+				log("AUR helper check: " + helper + " OK")
+			default:
+				log("AUR helper check: " + helper + " failed: " + status.Details)
+			}
+		}
+
+		if status.Working {
+			return status
+		}
+		if status.Tested && firstFailure.Name == "" {
+			firstFailure = status
+		}
 	}
-	if hasCommand("yay") {
-		return "yay"
+
+	return firstFailure
+}
+
+func probeAURHelper(helper string) AURHelperStatus {
+	status := AURHelperStatus{Name: helper}
+
+	if !hasCommand(helper) {
+		status.Details = "not installed"
+		return status
 	}
-	return ""
+
+	status.Tested = true
+
+	out, err := runCommand(helper, "--version")
+	trimmed := strings.TrimSpace(out)
+
+	if err == nil {
+		status.Working = true
+		if trimmed == "" {
+			status.Details = "version check succeeded"
+		} else {
+			status.Details = "version check succeeded: " + oneLine(trimmed)
+		}
+		return status
+	}
+
+	status.Details = explainCommandError(err)
+	if trimmed != "" {
+		status.Details += " | " + oneLine(trimmed)
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		status.ExitCode = exitErr.ExitCode()
+	}
+	return status
+}
+
+func oneLine(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.ReplaceAll(s, "\n", " | ")
+	return s
 }
 
 func detectManagers() []ManagerInfo {
@@ -814,19 +892,33 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 		log("  pacman official repo step completed successfully")
 	}
 
-	aurHelper := detectAURHelper()
-	if aurHelper == "" {
-		log("➜ no AUR helper detected; skipping AUR updates")
+	aurStatus := detectWorkingAURHelper(log)
+	aurHelper := aurStatus.Name
+	if aurHelper == "" || !aurStatus.Working {
+		log("➜ no working AUR helper detected; skipping AUR updates")
 		log("✔ pacman complete")
 		return true
 	}
 
 	aurUpdates, aurErr := getAURUpdates(aurHelper)
 	if aurErr != nil {
-		log("➜ could not query AUR updates with " + aurHelper + " -Qua: " + aurErr.Error())
-		log("➜ AUR step skipped to avoid unsafe assumptions")
-		log("✔ pacman complete")
-		return true
+		log("➜ selected AUR helper failed update query: " + aurHelper + " -Qua: " + aurErr.Error())
+
+		fallback := alternateAURHelper(aurHelper)
+		if fallback != "" {
+			fallbackStatus := probeAURHelper(fallback)
+			if fallbackStatus.Working {
+				log("➜ falling back to alternate AUR helper: " + fallback)
+				aurHelper = fallback
+				aurUpdates, aurErr = getAURUpdates(aurHelper)
+			}
+		}
+
+		if aurErr != nil {
+			log("➜ RepoRover will skip AUR for this session")
+			log("✔ pacman complete")
+			return true
+		}
 	}
 
 	if len(aurUpdates) == 0 {
@@ -866,11 +958,12 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 		log("➜ user chose to skip the AUR step")
 	case AURActionOpenTerminal:
 		log("➜ user chose to open AUR updates in terminal")
-		if err := launchAURInTerminal(aurHelper); err != nil {
-			log("✖ could not launch terminal for " + aurHelper + ": " + err.Error())
+		usedHelper, err := launchAURInTerminalWithFallback(aurHelper, log)
+		if err != nil {
+			log("✖ could not launch terminal for AUR updates: " + err.Error())
 			return false
 		}
-		log("  terminal launched for: " + aurHelper + " -Sua")
+		log("  terminal launched for: " + usedHelper + " -Sua")
 		log("  complete the AUR prompts in the terminal window")
 		log("  when finished, review the result and close that terminal window")
 	default:
@@ -886,10 +979,11 @@ func getAURUpdates(aurHelper string) ([]string, error) {
 	out, err := runCommand(aurHelper, "-Qua")
 	trimmed := strings.TrimSpace(out)
 
+	if err != nil && trimmed == "" {
+		return nil, err
+	}
+
 	if trimmed == "" {
-		if err != nil {
-			return []string{}, nil
-		}
 		return []string{}, nil
 	}
 
@@ -1043,6 +1137,53 @@ func buildTerminalArgs(termName, shellCommand string) []string {
 }
 
 func launchAURInTerminal(aurHelper string) error {
+	_, err := launchAURInTerminalWithFallback(aurHelper, nil)
+	return err
+}
+
+func launchAURInTerminalWithFallback(aurHelper string, log func(string)) (string, error) {
+	attemptOrder := []string{aurHelper}
+	if fallback := alternateAURHelper(aurHelper); fallback != "" {
+		attemptOrder = append(attemptOrder, fallback)
+	}
+
+	var launchErrs []string
+
+	for i, helper := range attemptOrder {
+		status := probeAURHelper(helper)
+		if !status.Working {
+			msg := helper + " failed health check"
+			if status.Details != "" {
+				msg += ": " + status.Details
+			}
+			launchErrs = append(launchErrs, msg)
+			if log != nil {
+				log("➜ " + msg)
+			}
+			continue
+		}
+
+		if err := launchSpecificAURInTerminal(helper); err != nil {
+			launchErrs = append(launchErrs, helper+": "+err.Error())
+			if log != nil {
+				log("➜ terminal launch failed for " + helper + ": " + err.Error())
+			}
+			continue
+		}
+
+		if i > 0 && log != nil {
+			log("➜ falling back to alternate AUR helper: " + helper)
+		}
+		return helper, nil
+	}
+
+	if len(launchErrs) == 0 {
+		return "", fmt.Errorf("no usable AUR helper found")
+	}
+	return "", fmt.Errorf(strings.Join(launchErrs, " | "))
+}
+
+func launchSpecificAURInTerminal(aurHelper string) error {
 	term, ok := detectTerminalCommand()
 	if !ok {
 		return fmt.Errorf("no supported terminal emulator was detected")
@@ -1053,6 +1194,20 @@ func launchAURInTerminal(aurHelper string) error {
 
 	cmd := exec.Command(term.Name, args...)
 	return cmd.Start()
+}
+
+func alternateAURHelper(current string) string {
+	switch current {
+	case "paru":
+		if hasCommand("yay") {
+			return "yay"
+		}
+	case "yay":
+		if hasCommand("paru") {
+			return "paru"
+		}
+	}
+	return ""
 }
 
 func escapeSingleQuotes(s string) string {

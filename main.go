@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.2.0"
+const appVersion = "1.2.1"
 
 var busy atomic.Bool
 
@@ -381,7 +381,7 @@ Testing Tips
 
 			if hasCommand("pacman") {
 				aurStatus := detectWorkingAURHelper(appendOutput)
-				if aurStatus.Name != "" {
+				if aurStatus.Working {
 					appendOutput("AUR helper: working (" + aurStatus.Name + ")")
 					if term, ok := detectTerminalCommand(); ok {
 						appendOutput("terminal emulator: detected (" + term.Name + ")")
@@ -409,7 +409,7 @@ Testing Tips
 
 			if hasCommand("pacman") {
 				aurStatus := detectWorkingAURHelper(nil)
-				if aurStatus.Name != "" {
+				if aurStatus.Working {
 					appendOutput("✔ working AUR helper detected: " + aurStatus.Name + " (AUR updates can be reviewed before running)")
 				} else {
 					appendOutput("➜ no working AUR helper detected (AUR updates will be skipped)")
@@ -754,15 +754,15 @@ func probeAURHelper(helper string) AURHelperStatus {
 
 	status.Tested = true
 
-	out, err := runCommand(helper, "-Qua")
+	out, err := runCommand(helper, "--version")
 	trimmed := strings.TrimSpace(out)
 
 	if err == nil {
 		status.Working = true
 		if trimmed == "" {
-			status.Details = "query succeeded with no pending AUR updates"
+			status.Details = "version check succeeded"
 		} else {
-			status.Details = "query succeeded"
+			status.Details = "version check succeeded: " + oneLine(trimmed)
 		}
 		return status
 	}
@@ -979,10 +979,11 @@ func getAURUpdates(aurHelper string) ([]string, error) {
 	out, err := runCommand(aurHelper, "-Qua")
 	trimmed := strings.TrimSpace(out)
 
+	if err != nil && trimmed == "" {
+		return nil, err
+	}
+
 	if trimmed == "" {
-		if err != nil {
-			return []string{}, nil
-		}
 		return []string{}, nil
 	}
 
