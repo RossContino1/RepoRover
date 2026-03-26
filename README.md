@@ -1,69 +1,73 @@
 # RepoRover
-“Update apt, snap, flatpak, pacman, zypper, and AUR — all in one click.”
+**Update apt, snap, flatpak, pacman, zypper, and AUR — all in one click.**
 
 <p align="center">
-  <img src="docs/output.gif" height="400" border="3" alt="RepoRover demo"/><br>
-  <sub>RepoRover updating multiple package managers from one interface</sub>
+  <img src="docs/output.gif" height="400" style="border:3px solid black" alt="RepoRover demo"/><br>
+  <sub>One tool. Every package manager. Zero command memorization.</sub>
 </p>
 
-**RepoRover** is a graphical Linux system update utility that helps you update multiple package managers from one interface.
+---
 
-It detects your Linux distribution and installed package managers, then runs the appropriate update workflow for your system.
-
-## Latest Release
-
-👉 **RepoRover v1.2.0 now available**  
-Includes improved AUR helper handling and updated release packaging.
-
-⭐ Featured on LinuxLinks: [Read the review](https://www.linuxlinks.com/reporover-universal-linux-package-updater/)
-
-![Platform](https://img.shields.io/badge/platform-Linux-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![AppImage](https://img.shields.io/badge/Distribution-AppImage-orange)
-![GitHub stars](https://img.shields.io/github/stars/RossContino1/RepoRover)
-
-⭐ If you find RepoRover useful, consider starring the project.
+⭐ **If RepoRover saves you time, consider starring the project — it really helps visibility.**
 
 ---
 
-## Overview
+## 🚀 What is RepoRover?
 
-RepoRover is designed for Linux users who want a simpler way to keep their systems updated without memorizing package manager commands.
+**RepoRover** is a graphical Linux update utility that eliminates the need to remember package manager commands.
 
-Instead of manually running update commands, RepoRover provides a clean graphical interface that:
+It automatically:
+- Detects your Linux distribution
+- Detects installed package managers
+- Runs the correct update workflow for your system
 
-- detects your Linux distribution
-- detects installed package managers
-- runs the appropriate update commands for your system
-- securely requests administrator privileges using **pkexec**
-
-RepoRover is distributed as a **portable AppImage**, so it can run on many Linux systems without a traditional installer.
+👉 No more:
+- remembering `apt`, `dnf`, `pacman`, etc.
+- running multiple update commands
+- guessing which package manager to use
 
 ---
 
-## Features
+## ⚡ Why use RepoRover?
 
-- Simple graphical interface for Linux system updates
-- Automatically detects Linux distribution
-- Automatically detects installed package managers
-- Supports:
+Because Linux updates shouldn’t look like this:
+
+```bash
+sudo apt update && sudo apt upgrade
+flatpak update
+snap refresh
+```
+
+Or this:
+
+```bash
+sudo pacman -Syu
+yay -Syu
+```
+
+👉 RepoRover does it all for you — in one click.
+
+---
+
+## ✨ Features
+
+- 🧠 Auto-detects Linux distribution
+- 🔍 Auto-detects installed package managers
+- ⚙️ Supports:
   - `apt`
   - `snap`
   - `flatpak`
   - `zypper`
   - `pacman`
-  - AUR helpers: `yay` and `paru`
-- Improved AUR helper handling in **v1.2.0**
-- Secure privilege escalation using **pkexec**
-- Portable **AppImage** distribution
-- Optional install and uninstall scripts
-- No traditional system-wide installation required
+  - AUR helpers: `yay`, `paru`
+- 🔐 Secure privilege escalation using **pkexec**
+- 📦 Portable **AppImage** (no install required)
+- 🧰 Optional install/uninstall scripts for menu integration
+- 🚀 Improved AUR handling in **v1.2.0**
 
 ---
 
-## Supported Distributions
-
-RepoRover currently supports:
+## 🐧 Supported Distributions
 
 - Ubuntu
 - Debian
@@ -73,11 +77,9 @@ RepoRover currently supports:
 - openSUSE Tumbleweed
 - CachyOS
 
-Support for additional distributions may be added in future releases.
-
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 <p align="center">
   <b>🧭 Main Dashboard</b><br>
@@ -85,42 +87,110 @@ Support for additional distributions may be added in future releases.
 </p>
 
 <p align="center">
-  <b>🔍 Distro Discovery</b><br>
-  <img src="docs/2.png" width="700" style="border:3px solid black" alt="RepoRover distro discovery"/>
+  <b>🔍 Distro Detection</b><br>
+  <img src="docs/2.png" width="700" style="border:3px solid black" alt="RepoRover distro detection"/>
 </p>
 
 <p align="center">
-  <b>🔐 Sudo Permission Prompt</b><br>
-  <img src="docs/3.png" width="700" style="border:3px solid black" alt="RepoRover sudo permission prompt"/>
+  <b>🔐 Privilege Prompt</b><br>
+  <img src="docs/3.png" width="700" style="border:3px solid black" alt="RepoRover privilege prompt"/>
 </p>
 
 <p align="center">
-  <b>📊 Results View</b><br>
-  <img src="docs/4.png" width="700" style="border:3px solid black" alt="RepoRover results view"/>
+  <b>📊 Update Results</b><br>
+  <img src="docs/4.png" width="700" style="border:3px solid black" alt="RepoRover results"/>
 </p>
 
 ---
 
-## Homepage
+## 📦 Download
 
 [bytesbreadbbq.com/reporover](https://bytesbreadbbq.com/reporover/)
 
 ---
 
-## Source Code
+## 🔐 Permissions (Important)
+
+RepoRover uses **pkexec** (part of PolicyKit) to securely request administrator privileges when running system updates.
+
+### Distribution Notes
+
+- **Ubuntu / Debian / Linux Mint**  
+  Works out of the box.
+
+- **Arch / CachyOS**  
+  Works out of the box. GUI privilege prompts rely on PolicyKit / polkit being present, which is typical on these systems.
+
+- **openSUSE**  
+  Works out of the box.
+
+- **Fedora**  
+  Usually includes PolicyKit already, but if it is missing:
+
+```bash
+sudo dnf install polkit
+```
+
+### If no password prompt appears
+
+Your system may be missing or misconfigured PolicyKit.
+
+RepoRover does **not** bypass system security. It uses your system’s native authentication flow through `pkexec`.
+
+---
+
+## ⚠️ AUR (Arch-based systems)
+
+RepoRover supports both:
+- `yay`
+- `paru`
+
+### How AUR helper detection works
+
+- RepoRover checks whether `yay` and/or `paru` are installed.
+- If only one is present, RepoRover uses that helper.
+- If both are present, RepoRover currently selects an available helper automatically.
+
+### Important note about `yay` vs `paru`
+
+On some systems, both helpers may be installed, but one may work better than the other for a particular setup.
+
+For example, a package may have originally been installed using `yay`, while `paru` is also present on the machine. In rare cases, `paru` may fail even though `yay` succeeds when run manually.
+
+If that happens:
+- Run updates manually using your preferred helper:
+  - `yay -Syu`
+  - `paru -Syu`
+- Then re-run RepoRover if needed.
+
+Future versions of RepoRover will continue improving AUR helper selection logic.
+
+---
+
+## 🌐 Homepage
+
+[bytesbreadbbq.com/reporover](https://bytesbreadbbq.com/reporover)
+
+---
+
+## 🌐 Source Code
 
 [github.com/RossContino1/RepoRover](https://github.com/RossContino1/RepoRover)
 
 ---
 
-## Requirements
+## ⭐ Support the Project
 
-RepoRover requires the following components.
+If RepoRover saves you time, consider:
 
-### pkexec (PolicyKit)
+- ⭐ Starring the repo
+- 🔁 Sharing it with other Linux users
+- ☕ Supporting development
 
-Used to securely request administrator privileges.
+[![Support via PayPal](https://img.shields.io/badge/Support-PayPal-blue?style=for-the-badge&logo=paypal)](https://www.paypal.com/donate/?hosted_button_id=XS9MXN5AE5P3S)
 
-**Fedora**
-```bash
-sudo dnf install polkit
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
