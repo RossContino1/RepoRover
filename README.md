@@ -145,6 +145,40 @@ RepoRover supports both:
 - `yay`
 - `paru`
 
+### ✅ Improved AUR handling (v1.2.0)
+
+RepoRover now performs a real AUR query to determine which helper actually works on your system.
+
+- Tests helpers using:
+  - `yay -Qua`
+  - `paru -Qua`
+- Automatically selects the **working helper**
+- Uses the **same helper for both detection and updates**
+- Prevents failures when both helpers are installed
+
+### 🧠 Why this matters
+
+On some systems, both `yay` and `paru` may be installed — but only one works correctly depending on how packages were installed.
+
+Older tools (and earlier versions of RepoRover) could:
+- Pick the wrong helper
+- Fail during updates
+- Return confusing errors
+
+👉 RepoRover now avoids this entirely by verifying helper functionality before use.
+
+### ✅ Tested on
+
+- Arch Linux (GNOME)
+- CachyOS (KDE)
+- Garuda Linux (XFCE)
+
+AUR updates should now work reliably across Arch-based systems.
+
+RepoRover supports both:
+- `yay`
+- `paru`
+
 ### How AUR helper detection works
 
 - RepoRover checks whether `yay` and/or `paru` are installed.
