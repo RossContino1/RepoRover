@@ -481,8 +481,8 @@ Testing Tips
 
 				ok := runManager(a, w, m, dryRun.Checked, appendOutput)
 				if !ok {
-					appendOutput("Update session stopped because " + m.Name + " failed.")
-					setStatus(m.Name+" failed", 1)
+					appendOutput("Update session stopped during " + m.Name + ".")
+					setStatus(m.Name+" stopped", 1)
 					return
 				}
 
@@ -1056,26 +1056,22 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurHelper string, aurUpdates [
 				}
 
 				decision := AURDecision{Proceed: true, Action: AURActionSkip}
-				switch radio.Selected {
-				case radio.Options[1]:
+				if radio.Selected == radio.Options[1] {
 					decision.Action = AURActionOpenTerminal
-				default:
-					decision.Action = AURActionSkip
 				}
 				result <- decision
-			}, w)
+			},
+			w,
+		)
+
 		dlg.Resize(fyne.NewSize(760, 560))
 		dlg.Show()
 		shown <- true
 	})
 
-	select {
-	case <-shown:
-		decision := <-result
-		return decision, true
-	case <-time.After(2 * time.Second):
-		return AURDecision{}, false
-	}
+	<-shown
+	decision := <-result
+	return decision, true
 }
 
 func detectTerminalCommand() (TerminalLaunch, bool) {
