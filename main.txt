@@ -481,8 +481,8 @@ Testing Tips
 
 				ok := runManager(a, w, m, dryRun.Checked, appendOutput)
 				if !ok {
-					appendOutput("Update session stopped because " + m.Name + " failed.")
-					setStatus(m.Name+" failed", 1)
+					appendOutput("Update session stopped during " + m.Name + ".")
+					setStatus(m.Name+" stopped", 1)
 					return
 				}
 
@@ -754,32 +754,41 @@ func probeAURHelper(helper string) AURHelperStatus {
 
 	status.Tested = true
 
-	// Real probe: can the helper actually query AUR updates?
-	// Exit code 0 with empty output is still a valid "working" result.
-	out, err := runCommand(helper, "-Qua")
-	trimmed := strings.TrimSpace(out)
+	stdout, stderr, err := runCommandStdout(helper, "-Qua")
+	trimmedOut := strings.TrimSpace(stdout)
+	trimmedErr := strings.TrimSpace(stderr)
 
 	if err == nil {
 		status.Working = true
-		if trimmed == "" {
-			status.Details = "AUR query succeeded (no updates listed)"
+		if trimmedOut == "" {
+			status.Details = "no AUR updates"
 		} else {
 			status.Details = "AUR query succeeded"
 		}
 		return status
 	}
 
-	// Some helpers may still print useful output even when returning non-zero.
-	// Treat that as not healthy so RepoRover does not choose it automatically.
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 && trimmedOut == "" {
+		status.Working = true
+		status.ExitCode = exitErr.ExitCode()
+		status.Details = "no AUR updates"
+		return status
+	}
+
 	status.Details = explainCommandError(err)
-	if trimmed != "" {
-		status.Details += " | " + oneLine(trimmed)
+	if trimmedErr != "" {
+		status.Details += " | " + oneLine(trimmedErr)
+	}
+	if trimmedOut != "" {
+		status.Details += " | stdout: " + oneLine(trimmedOut)
 	}
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		status.ExitCode = exitErr.ExitCode()
 	}
 	return status
 }
+
+
 
 func oneLine(s string) string {
 	s = strings.TrimSpace(s)
@@ -980,19 +989,27 @@ func runPacmanFlow(a fyne.App, w fyne.Window, dryRun bool, log func(string)) boo
 }
 
 func getAURUpdates(aurHelper string) ([]string, error) {
-	out, err := runCommand(aurHelper, "-Qua")
-	trimmed := strings.TrimSpace(out)
+	stdout, stderr, err := runCommandStdout(aurHelper, "-Qua")
+	trimmedOut := strings.TrimSpace(stdout)
 
-	if err != nil && trimmed == "" {
-		return nil, err
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 && trimmedOut == "" {
+			return []string{}, nil
+		}
+		if trimmedOut == "" {
+			if strings.TrimSpace(stderr) != "" {
+				return nil, fmt.Errorf("%s", oneLine(stderr))
+			}
+			return nil, err
+		}
 	}
 
-	if trimmed == "" {
+	if trimmedOut == "" {
 		return []string{}, nil
 	}
 
 	var updates []string
-	for _, line := range strings.Split(trimmed, "\n") {
+	for _, line := range strings.Split(trimmedOut, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -1056,26 +1073,22 @@ func promptAURDecision(a fyne.App, w fyne.Window, aurHelper string, aurUpdates [
 				}
 
 				decision := AURDecision{Proceed: true, Action: AURActionSkip}
-				switch radio.Selected {
-				case radio.Options[1]:
+				if radio.Selected == radio.Options[1] {
 					decision.Action = AURActionOpenTerminal
-				default:
-					decision.Action = AURActionSkip
 				}
 				result <- decision
-			}, w)
+			},
+			w,
+		)
+
 		dlg.Resize(fyne.NewSize(760, 560))
 		dlg.Show()
 		shown <- true
 	})
 
-	select {
-	case <-shown:
-		decision := <-result
-		return decision, true
-	case <-time.After(2 * time.Second):
-		return AURDecision{}, false
-	}
+	<-shown
+	decision := <-result
+	return decision, true
 }
 
 func detectTerminalCommand() (TerminalLaunch, bool) {
@@ -1216,6 +1229,17 @@ func runCommand(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
+}
+
+func runCommandStdout(name string, args ...string) (string, string, error) {
+	cmd := exec.Command(name, args...)
+
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	return stdout.String(), stderr.String(), err
 }
 
 func explainCommandError(err error) string {
