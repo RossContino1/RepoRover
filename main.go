@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.2.1"
+const appVersion = "1.2.2"
 
 var busy atomic.Bool
 
@@ -727,7 +727,7 @@ func detectWorkingAURHelper(log func(string)) AURHelperStatus {
 			case !status.Tested:
 				log("AUR helper check: " + helper + " not installed")
 			case status.Working:
-				log("AUR helper check: " + helper + " OK")
+				log("AUR helper check: " + helper + " OK (" + status.Details + ")")
 			default:
 				log("AUR helper check: " + helper + " failed: " + status.Details)
 			}
@@ -754,19 +754,23 @@ func probeAURHelper(helper string) AURHelperStatus {
 
 	status.Tested = true
 
-	out, err := runCommand(helper, "--version")
+	// Real probe: can the helper actually query AUR updates?
+	// Exit code 0 with empty output is still a valid "working" result.
+	out, err := runCommand(helper, "-Qua")
 	trimmed := strings.TrimSpace(out)
 
 	if err == nil {
 		status.Working = true
 		if trimmed == "" {
-			status.Details = "version check succeeded"
+			status.Details = "AUR query succeeded (no updates listed)"
 		} else {
-			status.Details = "version check succeeded: " + oneLine(trimmed)
+			status.Details = "AUR query succeeded"
 		}
 		return status
 	}
 
+	// Some helpers may still print useful output even when returning non-zero.
+	// Treat that as not healthy so RepoRover does not choose it automatically.
 	status.Details = explainCommandError(err)
 	if trimmed != "" {
 		status.Details += " | " + oneLine(trimmed)
@@ -1142,45 +1146,26 @@ func launchAURInTerminal(aurHelper string) error {
 }
 
 func launchAURInTerminalWithFallback(aurHelper string, log func(string)) (string, error) {
-	attemptOrder := []string{aurHelper}
-	if fallback := alternateAURHelper(aurHelper); fallback != "" {
-		attemptOrder = append(attemptOrder, fallback)
+	status := probeAURHelper(aurHelper)
+	if !status.Working {
+		msg := aurHelper + " failed health check"
+		if status.Details != "" {
+			msg += ": " + status.Details
+		}
+		if log != nil {
+			log("➜ " + msg)
+		}
+		return "", fmt.Errorf(msg)
 	}
 
-	var launchErrs []string
-
-	for i, helper := range attemptOrder {
-		status := probeAURHelper(helper)
-		if !status.Working {
-			msg := helper + " failed health check"
-			if status.Details != "" {
-				msg += ": " + status.Details
-			}
-			launchErrs = append(launchErrs, msg)
-			if log != nil {
-				log("➜ " + msg)
-			}
-			continue
+	if err := launchSpecificAURInTerminal(aurHelper); err != nil {
+		if log != nil {
+			log("➜ terminal launch failed for " + aurHelper + ": " + err.Error())
 		}
-
-		if err := launchSpecificAURInTerminal(helper); err != nil {
-			launchErrs = append(launchErrs, helper+": "+err.Error())
-			if log != nil {
-				log("➜ terminal launch failed for " + helper + ": " + err.Error())
-			}
-			continue
-		}
-
-		if i > 0 && log != nil {
-			log("➜ falling back to alternate AUR helper: " + helper)
-		}
-		return helper, nil
+		return "", err
 	}
 
-	if len(launchErrs) == 0 {
-		return "", fmt.Errorf("no usable AUR helper found")
-	}
-	return "", fmt.Errorf(strings.Join(launchErrs, " | "))
+	return aurHelper, nil
 }
 
 func launchSpecificAURInTerminal(aurHelper string) error {
@@ -1189,7 +1174,10 @@ func launchSpecificAURInTerminal(aurHelper string) error {
 		return fmt.Errorf("no supported terminal emulator was detected")
 	}
 
-	shellCommand := aurHelper + ` -Sua; status=$?; echo; if [ $status -eq 0 ]; then echo "AUR update finished successfully."; else echo "` + aurHelper + ` exited with status $status."; fi; sleep 2; exit $status`
+	// Use exec so the helper becomes the main terminal process.
+	// --needed avoids rebuilding/reinstalling things unnecessarily.
+	shellCommand := aurHelper + ` -Sua --needed; status=$?; echo; if [ $status -eq 0 ]; then echo "AUR update finished successfully."; else echo "` + aurHelper + ` exited with status $status."; fi; echo "Press Enter to close..."; read _; exit $status`
+
 	args := buildTerminalArgs(term.Name, shellCommand)
 
 	cmd := exec.Command(term.Name, args...)

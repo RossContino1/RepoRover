@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 APP_NAME="RepoRover"
 APP_ID="reporover"
-VERSION="1.2.1"
+VERSION="1.2.2"
 ARCH="x86_64"
 
 BINARY_NAME="$APP_ID"
