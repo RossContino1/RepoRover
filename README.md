@@ -1,20 +1,56 @@
 # RepoRover
-**Update apt, snap, flatpak, pacman, zypper, and AUR — all in one click.**
+
+🚀 **Update ALL your Linux packages in ONE command — including AUR**
+
+No more juggling:
+- apt
+- snap
+- flatpak
+- pacman
+- yay / paru
+
+👉 RepoRover detects everything and updates it for you.
+
+---
+
+⭐ **If this saves you time, please star the repo — it helps more than you think**
+
+⬇️ **Download RepoRover**  
+https://bytesbreadbbq.com/reporover
+
+📰 **Featured on LinuxLinks (independent Linux review site)**  
+https://www.linuxlinks.com/reporover-universal-linux-package-updater/
+
+🎥 Seen on TikTok / YouTube
+
+---
 
 <p align="center">
   <img src="docs/output.gif" height="400" style="border:3px solid black" alt="RepoRover demo"/><br>
-  <sub>One tool. Every package manager. Zero command memorization.</sub>
+  <sub>One command. Every package manager. Zero hassle.</sub>
 </p>
 
 ---
 
-⭐ **If RepoRover saves you time, consider starring the project — it really helps visibility.**
+## ⚡ Quick Start (30 seconds)
 
-📰 Featured on LinuxLinks (independent Linux software review site):  https://www.linuxlinks.com/reporover-universal-linux-package-updater/
+1. Download RepoRover  
+2. Run the AppImage  
+3. Click “Update”  
 
-⬇️ Download here:  https://bytesbreadbbq.com/reporover
+Done.
 
-🎥 Seen on TikTok / YouTube
+No setup. No configuration.
+
+---
+
+## ⭐ Why people star RepoRover
+
+- Saves time every single update
+- Works across multiple package managers automatically
+- Makes Linux easier without removing power
+
+👉 If that sounds useful, give it a ⭐ — it helps others discover the project.
 
 ---
 
@@ -69,7 +105,7 @@ yay -Syu
 - 🔐 Secure privilege escalation using **pkexec**
 - 📦 Portable **AppImage** (no install required)
 - 🧰 Optional install/uninstall scripts for menu integration
-- 🚀 Improved AUR handling in **v1.2.0**
+- 🚀 Improved AUR handling in latest versions
 
 ---
 
@@ -111,7 +147,7 @@ yay -Syu
 
 ## 📦 Download
 
-[bytesbreadbbq.com/reporover](https://bytesbreadbbq.com/reporover/)
+👉 https://bytesbreadbbq.com/reporover
 
 ---
 
@@ -125,13 +161,13 @@ RepoRover uses **pkexec** (part of PolicyKit) to securely request administrator 
   Works out of the box.
 
 - **Arch / CachyOS**  
-  Works out of the box. GUI privilege prompts rely on PolicyKit / polkit being present, which is typical on these systems.
+  Works out of the box (requires PolicyKit / polkit).
 
 - **openSUSE**  
   Works out of the box.
 
 - **Fedora**  
-  Usually includes PolicyKit already, but if it is missing:
+  If needed:
 
 ```bash
 sudo dnf install polkit
@@ -151,81 +187,44 @@ RepoRover supports both:
 - `yay`
 - `paru`
 
-### ✅ Improved AUR handling (v1.2.0)
+### ✅ Smart AUR Handling
 
-RepoRover now performs a real AUR query to determine which helper actually works on your system.
+RepoRover:
+- Detects which helper actually works
+- Uses the same helper for detection and updates
+- Prevents failures when both are installed
 
-- Tests helpers using:
-  - `yay -Qua`
-  - `paru -Qua`
-- Automatically selects the **working helper**
-- Uses the **same helper for both detection and updates**
-- Prevents failures when both helpers are installed
-
-### 🧠 Why this matters
-
-On some systems, both `yay` and `paru` may be installed — but only one works correctly depending on how packages were installed.
-
-Older tools (and earlier versions of RepoRover) could:
-- Pick the wrong helper
-- Fail during updates
-- Return confusing errors
-
-👉 RepoRover now avoids this entirely by verifying helper functionality before use.
-
-### ✅ Tested on
-
-- Arch Linux (GNOME)
-- CachyOS (KDE)
-- Garuda Linux (XFCE)
-
-AUR updates should now work reliably across Arch-based systems.
-
-RepoRover supports both:
-- `yay`
-- `paru`
-
-### How AUR helper detection works
-
-- RepoRover checks whether `yay` and/or `paru` are installed.
-- If only one is present, RepoRover uses that helper.
-- If both are present, RepoRover currently selects an available helper automatically.
-
-### Important note about `yay` vs `paru`
-
-On some systems, both helpers may be installed, but one may work better than the other for a particular setup.
-
-For example, a package may have originally been installed using `yay`, while `paru` is also present on the machine. In rare cases, `paru` may fail even though `yay` succeeds when run manually.
-
-If that happens:
-- Run updates manually using your preferred helper:
-  - `yay -Syu`
-  - `paru -Syu`
-- Then re-run RepoRover if needed.
-
-Future versions of RepoRover will continue improving AUR helper selection logic.
+👉 No more guessing or broken AUR updates.
 
 ---
 
-## 🌐 Homepage
+## 📈 Growing Fast
 
-[bytesbreadbbq.com/reporover](https://bytesbreadbbq.com/reporover)
+RepoRover is gaining traction across:
+- TikTok
+- YouTube
+- Linux communities
+
+👉 Join early and be part of it.
 
 ---
 
-## 🌐 Source Code
+## 🧰 More Tools
 
-[github.com/RossContino1/RepoRover](https://github.com/RossContino1/RepoRover)
+Check out my other projects:
+
+- 🎬 **Domenico** — Turn videos into looping GIFs instantly  
+- 🎞️ **Leonardo** — Convert videos for DaVinci Resolve on Linux  
 
 ---
 
 ## ⭐ Support the Project
 
-If RepoRover saves you time, consider:
+If RepoRover saves you time:
 
-- ⭐ Starring the repo
-- 🔁 Sharing it with other Linux users
-- ☕ Supporting development
+- ⭐ Star the repo  
+- 🔁 Share it with other Linux users  
+- ☕ Support development  
 
 [![Support via PayPal](https://img.shields.io/badge/Support-PayPal-blue?style=for-the-badge&logo=paypal)](https://www.paypal.com/donate/?hosted_button_id=XS9MXN5AE5P3S)
 
@@ -233,4 +232,4 @@ If RepoRover saves you time, consider:
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License
