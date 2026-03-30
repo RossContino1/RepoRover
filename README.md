@@ -12,7 +12,7 @@
 
 📰 Featured on LinuxLinks (independent Linux software review site):  https://www.linuxlinks.com/reporover-universal-linux-package-updater/
 
-⬇️ Download here:  bytesbreadbbq.com/reporover
+⬇️ Download here:  https://bytesbreadbbq.com/reporover
 
 🎥 Seen on TikTok / YouTube
 
