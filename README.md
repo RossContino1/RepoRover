@@ -10,6 +10,12 @@
 
 ⭐ **If RepoRover saves you time, consider starring the project — it really helps visibility.**
 
+📰 Featured on LinuxLinks (independent Linux software review site):  https://www.linuxlinks.com/reporover-universal-linux-package-updater/
+
+⬇️ Download here:  bytesbreadbbq.com/reporover
+
+🎥 Seen on TikTok / YouTube
+
 ---
 
 ## 🚀 What is RepoRover?
