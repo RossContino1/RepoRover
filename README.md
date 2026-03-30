@@ -6,6 +6,7 @@ No more juggling:
 - apt
 - snap
 - flatpak
+- zypper
 - pacman
 - yay / paru
 
