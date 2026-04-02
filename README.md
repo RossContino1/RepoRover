@@ -45,6 +45,25 @@ No setup. No configuration.
 
 ---
 
+### ⚠️ Fedora Users (Quick Fix if AppImage Doesn’t Launch)
+
+If RepoRover doesn't start, install FUSE compatibility:
+
+```bash
+sudo dnf install fuse fuse-libs
+```
+
+This resolves the common error:
+
+```
+dlopen(): error loading libfuse.so.2
+```
+
+After installing, RepoRover should launch normally.
+
+
+---
+
 ## ⭐ Why people star RepoRover
 
 - Saves time every single update
