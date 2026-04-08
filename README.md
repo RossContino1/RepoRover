@@ -3,12 +3,14 @@
 🚀 **Update ALL your Linux packages in ONE command — including AUR**
 
 No more juggling:
-- apt
 - snap
 - flatpak
 - zypper
 - pacman
 - yay / paru
+- 🛡️ APT update modes:
+  - **Safe Mode** → runs `apt upgrade`
+  - **Full Mode** → runs `apt upgrade --with-new-pkgs` for updates that need new dependencies
 
 👉 RepoRover detects everything and updates it for you.
 
@@ -38,6 +40,7 @@ https://www.linuxlinks.com/reporover-universal-linux-package-updater/
 1. Download RepoRover  
 2. Run the AppImage  
 3. Click “Update”  
+4. Tip: On Linux Mint / Ubuntu-based systems, choose **APT Full Mode** if a package update requires new dependencies.
 
 Done.
 
@@ -110,7 +113,22 @@ yay -Syu
 👉 RepoRover does it all for you — in one click.
 
 ---
+## 🔄 APT Update Modes (New in v1.3.0)
 
+RepoRover now includes two APT update modes on Debian-based systems such as Ubuntu and Linux Mint:
+
+- **Safe Mode**  
+  Runs:
+  ```bash
+  apt upgrade
+- **Full Mode**
+  Runs:
+  ```bash
+  apt upgrade --with-new-pkgs
+
+This allows APT to install newly required packages during an upgrade
+
+---
 ## ✨ Features
 
 - 🧠 Auto-detects Linux distribution

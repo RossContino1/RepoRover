@@ -20,7 +20,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.2.2"
+const appVersion = "1.3.0"
 
 var busy atomic.Bool
 
@@ -54,6 +54,31 @@ type TerminalLaunch struct {
 	Args []string
 }
 
+type APTMode int
+
+const (
+	APTSafeMode APTMode = iota
+	APTFullMode
+)
+
+func (m APTMode) Label() string {
+	switch m {
+	case APTFullMode:
+		return "Full"
+	default:
+		return "Safe"
+	}
+}
+
+func (m APTMode) UpgradeArgs() []string {
+	switch m {
+	case APTFullMode:
+		return []string{"pkexec", "apt", "upgrade", "--with-new-pkgs", "-y"}
+	default:
+		return []string{"pkexec", "apt", "upgrade", "-y"}
+	}
+}
+
 func main() {
 	iconRes := fyne.NewStaticResource("icon.png", iconBytes)
 
@@ -77,6 +102,20 @@ func main() {
 
 	dryRun := widget.NewCheck("Dry Run", func(bool) {})
 	systemOnly := widget.NewCheck("System Only", func(bool) {})
+
+	aptModeLabel := widget.NewLabel("APT Update Mode")
+	aptModeSelect := widget.NewSelect([]string{
+		"Safe (apt upgrade)",
+		"Full (apt upgrade --with-new-pkgs)",
+	}, nil)
+	aptModeSelect.SetSelected("Safe (apt upgrade)")
+
+	selectedAPTMode := func() APTMode {
+		if aptModeSelect.Selected == "Full (apt upgrade --with-new-pkgs)" {
+			return APTFullMode
+		}
+		return APTSafeMode
+	}
 
 	statusLabel := widget.NewLabel("Ready")
 	progressBar := widget.NewProgressBar()
@@ -268,6 +307,7 @@ Basic Operation
    - Include Snap
    - Dry Run
    - System Only
+   - APT Update Mode (Safe or Full)
 4. Click "Run Updates".
 
 Options
@@ -282,6 +322,12 @@ Shows what would be executed without running the commands.
 
 System Only
 Runs only the primary system package manager and skips Flatpak/Snap.
+
+APT Update Mode
+Safe:
+Uses "apt upgrade" and avoids installing new packages automatically.
+Full:
+Uses "apt upgrade --with-new-pkgs" so updates like Google Chrome that need new package installs are more likely to be included.
 
 Arch / AUR Support
 On Arch-based systems, RepoRover:
@@ -445,6 +491,9 @@ Testing Tips
 			appendOutput("")
 			appendOutput("Starting update session...")
 
+			aptMode := selectedAPTMode()
+			appendOutput("APT update mode: " + aptMode.Label())
+
 			if len(managers) == 0 {
 				appendOutput("No supported update systems detected.")
 				setHeader(
@@ -479,7 +528,7 @@ Testing Tips
 			for _, m := range selected {
 				setStatus("Running "+m.Name+"...", float64(done)/float64(totalSteps))
 
-				ok := runManager(a, w, m, dryRun.Checked, appendOutput)
+				ok := runManager(a, w, m, dryRun.Checked, aptMode, appendOutput)
 				if !ok {
 					appendOutput("Update session stopped during " + m.Name + ".")
 					setStatus(m.Name+" stopped", 1)
@@ -578,6 +627,9 @@ Testing Tips
 		includeSnap,
 		dryRun,
 		systemOnly,
+		widget.NewSeparator(),
+		aptModeLabel,
+		aptModeSelect,
 	)
 
 	topPanel := container.NewVBox(
@@ -788,8 +840,6 @@ func probeAURHelper(helper string) AURHelperStatus {
 	return status
 }
 
-
-
 func oneLine(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -828,7 +878,7 @@ func detectPrimaryManager(managers []ManagerInfo) string {
 	return ""
 }
 
-func runManager(a fyne.App, w fyne.Window, m ManagerInfo, dryRun bool, log func(string)) bool {
+func runManager(a fyne.App, w fyne.Window, m ManagerInfo, dryRun bool, aptMode APTMode, log func(string)) bool {
 	log("")
 	log("Running " + m.Name + "...")
 
@@ -838,9 +888,10 @@ func runManager(a fyne.App, w fyne.Window, m ManagerInfo, dryRun bool, log func(
 			[]string{"pkexec", "dnf", "upgrade", "--refresh", "-y"},
 		)
 	case "apt":
+		log("APT mode selected: " + aptMode.Label())
 		return runSteps(m.Name, dryRun, log,
 			[]string{"pkexec", "apt", "update"},
-			[]string{"pkexec", "apt", "upgrade", "-y"},
+			aptMode.UpgradeArgs(),
 		)
 	case "zypper":
 		return runSteps(m.Name, dryRun, log,

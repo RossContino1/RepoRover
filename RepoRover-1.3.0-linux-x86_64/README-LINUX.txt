@@ -29,6 +29,9 @@ Features
   - Review and install manually in terminal (recommended)
   - Auto-confirm installation for faster updates
   - Skip AUR updates entirely
+• APT update mode selector on Debian-based systems:
+  - Safe Mode uses apt upgrade
+  - Full Mode uses apt upgrade --with-new-pkgs 
 
 Supported Distributions
 
@@ -51,8 +54,8 @@ RepoRover can run directly without installing.
 
 Open a terminal in the folder containing the AppImage and run:
 
-chmod +x RepoRover-0.1.0-x86_64.AppImage
-./RepoRover-0.1.0-x86_64.AppImage
+chmod +x RepoRover-1.3.0-x86_64.AppImage
+./RepoRover-1.3.0-x86_64.AppImage
 Optional Installation
 
 RepoRover can optionally be installed for the current user so it appears in the application menu.
@@ -88,6 +91,28 @@ During this process the program may appear to pause while it gathers package inf
 This is normal. Please allow the process to complete.
 
 Large update operations may take several minutes depending on system speed and internet connection.
+
+APT Update Modes (Ubuntu / Debian / Linux Mint)
+
+On APT-based systems, RepoRover provides two update modes:
+
+Safe Mode
+Uses:
+apt upgrade
+
+This is the more conservative option and avoids installing newly required packages during upgrade.
+
+Full Mode
+Uses:
+apt upgrade --with-new-pkgs
+
+This mode allows APT to install new dependencies when required by an update.
+
+Why this matters
+
+Some applications installed from third-party repositories, such as Google Chrome, may not update with plain apt upgrade if the updated package needs additional dependencies.
+
+If Linux Mint Update Manager installs something that Safe Mode does not, try Full Mode.
 
 Uninstall
 
