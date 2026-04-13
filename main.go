@@ -20,7 +20,10 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.3.0"
+const appVersion = "1.3.1"
+
+const donationURL = "https://www.paypal.com/donate/?hosted_button_id=XS9MXN5AE5P3S"
+const prefDonationPromptShown = "donationPromptShown"
 
 var busy atomic.Bool
 
@@ -77,6 +80,31 @@ func (m APTMode) UpgradeArgs() []string {
 	default:
 		return []string{"pkexec", "apt", "upgrade", "-y"}
 	}
+}
+
+func showDonationDialog(a fyne.App, w fyne.Window) {
+	message := "If RepoRover saves you time, consider supporting this free project.\n\nYour support helps keep development going."
+
+	dialog.NewConfirm(
+		"Support RepoRover",
+		message,
+		func(open bool) {
+			if !open {
+				return
+			}
+
+			u, err := url.Parse(donationURL)
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+
+			if err := a.OpenURL(u); err != nil {
+				dialog.ShowError(err, w)
+			}
+		},
+		w,
+	).Show()
 }
 
 func main() {
@@ -258,6 +286,9 @@ func main() {
 				}),
 				widget.NewButton("Website", func() {
 					openLink("https://bytesbreadbbq.com/")
+				}),
+				widget.NewButton("Donate", func() {
+					openLink(donationURL)
 				}),
 				widget.NewButton("Close", func() {
 					aboutWin.Close()
@@ -564,6 +595,14 @@ Testing Tips
 			appendOutput("Update session complete.")
 			appendOutput("Reboot status: " + rebootMessage)
 			setStatus("Update session complete", float64(done)/float64(totalSteps))
+
+			if !a.Preferences().BoolWithFallback(prefDonationPromptShown, false) {
+				a.Preferences().SetBool(prefDonationPromptShown, true)
+				appendOutput("Showing one-time support prompt after first successful update.")
+				fyne.Do(func() {
+					showDonationDialog(a, w)
+				})
+			}
 		}()
 	}
 
